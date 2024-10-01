@@ -94,17 +94,22 @@ void InputReader::ParseLine(std::string_view line) {
 }
 
 void InputReader::ApplyCommands([[maybe_unused]] TransportCatalogue& catalogue) const {
-    for(const auto& command : commands_ ) {
+    for(const auto& command_stop : commands_ ) {
 
-        auto bus_or_station = request_redactor::Trim(command.command);
+        auto station = request_redactor::Trim(command_stop.command);
 
-        if(bus_or_station == "Stop") {
+        if(station == "Stop") {
 
-            catalogue.AddStation(request_redactor::Trim(command.id), request_redactor::ParseCoordinates(command.description));
+            catalogue.AddStation(request_redactor::Trim(command_stop.id), request_redactor::ParseCoordinates(command_stop.description));
         }
+    }
 
-        if(bus_or_station == "Bus") {
-            catalogue.AddRouteBus(request_redactor::Trim(command.id), request_redactor::ParseRoute(command.description));
+    for(const auto& command_bus : commands_ ) {
+
+        auto bus = request_redactor::Trim(command_bus.command);
+
+        if(bus == "Bus") {
+            catalogue.AddRouteBus(request_redactor::Trim(command_bus.id), request_redactor::ParseRoute(command_bus.description));
         }
     }
 }
