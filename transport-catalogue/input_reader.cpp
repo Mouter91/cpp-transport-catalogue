@@ -84,8 +84,8 @@ CommandDescription ParseCommandDescription(std::string_view line) {
             std::string(line.substr(colon_pos + 1))};
 }
 
-std::unordered_map<std::string, int64_t> ParseLineAfterCoord(std::string_view line) {
-    std::unordered_map<std::string, int64_t> results;
+std::vector<std::pair<std::string, int64_t>> ParseLineAfterCoord(std::string_view line) {
+    std::vector<std::pair<std::string, int64_t>> results;
 
     size_t coord_end_pos = line.find(',', line.find(',') + 1);
 
@@ -107,7 +107,7 @@ std::unordered_map<std::string, int64_t> ParseLineAfterCoord(std::string_view li
         auto next_comma_pos = line.find(',', station_pos_start);
         std::string station = std::string(line.substr(station_pos_start, next_comma_pos - station_pos_start));
 
-        results.insert({station, distance});
+        results.push_back({station, distance});
 
         coord_end_pos = next_comma_pos;
     }
@@ -127,6 +127,18 @@ void InputReader::ParseLine(std::string_view line) {
 }
 
 void InputReader::ApplyCommands([[maybe_unused]] TransportCatalogue& catalogue) const {
+
+    for(const auto& command_stop : commands_ ) {
+
+        auto station = request_redactor::Trim(command_stop.command);
+
+        if(station == "Stop") {
+
+            catalogue.AddStation(request_redactor::Trim(command_stop.id), request_redactor::ParseCoordinates(command_stop.description));
+
+        }
+    }
+
     for(const auto& command_stop : commands_ ) {
 
         auto station = request_redactor::Trim(command_stop.command);
@@ -134,9 +146,11 @@ void InputReader::ApplyCommands([[maybe_unused]] TransportCatalogue& catalogue) 
         if(station == "Stop") {
 
             auto dist_next_stop = request_redactor::ParseLineAfterCoord(command_stop.description);
+            auto name_station = request_redactor::Trim(command_stop.id);
 
-            catalogue.AddStation(request_redactor::Trim(command_stop.id), request_redactor::ParseCoordinates(command_stop.description),
-                                 dist_next_stop);
+            for(auto& distance_to : dist_next_stop) {
+                catalogue.AddToStation(name_station, distance_to.first, distance_to.second);
+            }
         }
     }
 

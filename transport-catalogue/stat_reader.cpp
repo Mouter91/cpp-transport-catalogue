@@ -44,12 +44,7 @@ void PrintStatBus(const TransportCatalogue& transport_catalogue, std::string_vie
 
     for (size_t i = 1; i < stops_on_route; ++i) {
 
-        if(bus_ptr->route[i-1]->to_station_.count(bus_ptr->route[i]->name_station_) != 0) {
-
-            distance += bus_ptr->route[i-1]->to_station_.at(bus_ptr->route[i]->name_station_);
-        } else if(bus_ptr->route[i]->to_station_.count(bus_ptr->route[i-1]->name_station_) != 0) {
-            distance += bus_ptr->route[i]->to_station_.at(bus_ptr->route[i-1]->name_station_);
-        }
+        distance += transport_catalogue.GetDistance(bus_ptr->route[i-1]->name_station_, bus_ptr->route[i]->name_station_);
 
         geo_distance += ComputeDistance(bus_ptr->route[i-1]->coord_station_,
                                         bus_ptr->route[i]->coord_station_);

@@ -2,8 +2,8 @@
 
 namespace transport_catalogue {
 namespace routing {
-Station::Station(std::string_view name, coordinates_station::Coordinates coord, std::unordered_map<std::string, int64_t> to_station)
-    : name_station_(std::move(name)), coord_station_(coord), to_station_(to_station) {}
+Station::Station(std::string_view name, coordinates_station::Coordinates coord)
+    : name_station_(std::move(name)), coord_station_(coord) {}
 
 }
 
@@ -24,10 +24,9 @@ void TransportCatalogue::AddRouteBus(std::string_view bus_number, const std::vec
 }
 
 void TransportCatalogue::AddStation(std::string_view stop_name,
-                                    coordinates_station::Coordinates coord,
-                                    std::unordered_map<std::string, int64_t>& dis_next_station)
+                                    coordinates_station::Coordinates coord)
 {
-    stop_.emplace_back(static_cast<std::string>(stop_name), std::move(coord), std::move(dis_next_station));
+    stop_.emplace_back(static_cast<std::string>(stop_name), std::move(coord));
     routing::Station& station = stop_.back();
     station_.emplace(station.name_station_, &station);
 }
@@ -39,6 +38,14 @@ const routing::Bus* TransportCatalogue::GetRoute(std::string_view bus_number) co
         return nullptr;
     }
     return it->second;
+}
+
+void TransportCatalogue::AddToStation(std::string_view from_station, std::string_view to_station, int64_t distance) {
+
+    std::string_view from = station_.at(from_station)->name_station_;
+    std::string_view to = station_.at(to_station)->name_station_;
+
+    station_to_.emplace(std::make_pair(from, to), distance);
 }
 
 const std::unordered_set<routing::Bus*>& TransportCatalogue::GetBuses(std::string_view name_station) const {
@@ -60,4 +67,23 @@ const routing::Station* TransportCatalogue::GetStations(std::string_view station
     }
     return it->second;
 }
+
+const int64_t TransportCatalogue::GetDistance(std::string_view from, std::string_view to) const {
+
+    auto route_from_to = std::make_pair(from, to);
+    auto route_from_to_rev = std::make_pair(to, from);
+
+    auto it = station_to_.find(route_from_to);
+    if (it != station_to_.end()) {
+        return it->second;
+    }
+
+    it = station_to_.find(route_from_to_rev);
+    if (it != station_to_.end()) {
+        return it->second;
+    }
+
+    return 0;
+}
+
 }
