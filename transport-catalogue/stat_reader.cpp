@@ -35,6 +35,7 @@ void PrintStatBus(const TransportCatalogue& transport_catalogue, std::string_vie
 
     std::set<std::string> unique_stations;
     size_t stops_on_route = bus_ptr->route.size();
+    double geo_distance = 0.0;
     double distance = 0.0;
 
     for (const auto& station : bus_ptr->route) {
@@ -42,13 +43,23 @@ void PrintStatBus(const TransportCatalogue& transport_catalogue, std::string_vie
     }
 
     for (size_t i = 1; i < stops_on_route; ++i) {
-        distance += ComputeDistance(bus_ptr->route[i-1]->coord_station_,
-                                    bus_ptr->route[i]->coord_station_);
+
+        if(bus_ptr->route[i-1]->to_station_.count(bus_ptr->route[i]->name_station_) != 0) {
+
+            distance += bus_ptr->route[i-1]->to_station_.at(bus_ptr->route[i]->name_station_);
+        } else if(bus_ptr->route[i]->to_station_.count(bus_ptr->route[i-1]->name_station_) != 0) {
+            distance += bus_ptr->route[i]->to_station_.at(bus_ptr->route[i-1]->name_station_);
+        }
+
+        geo_distance += ComputeDistance(bus_ptr->route[i-1]->coord_station_,
+                                        bus_ptr->route[i]->coord_station_);
     }
+
+    double curvature = distance / geo_distance;
 
     output << "Bus " << request_bus << ": " << stops_on_route << " stops on route, "
            << unique_stations.size() << " unique stops, "
-           << distance << " route length" << std::endl;
+           << distance << " route length, " << curvature << " curvature" << std::endl;
 
 }
 

@@ -2,8 +2,8 @@
 
 namespace transport_catalogue {
 namespace routing {
-Station::Station(std::string_view name, coordinates_station::Coordinates coord)
-    : name_station_(std::move(name)), coord_station_(coord) {}
+Station::Station(std::string_view name, coordinates_station::Coordinates coord, std::unordered_map<std::string, int64_t> to_station)
+    : name_station_(std::move(name)), coord_station_(coord), to_station_(to_station) {}
 
 }
 
@@ -23,15 +23,14 @@ void TransportCatalogue::AddRouteBus(std::string_view bus_number, const std::vec
     route_.emplace(bus.number_bus_, &bus);
 }
 
-
-
-void TransportCatalogue::AddStation(std::string_view stop_name, coordinates_station::Coordinates coord) {
-
-    stop_.emplace_back(static_cast<std::string>(stop_name), std::move(coord));
+void TransportCatalogue::AddStation(std::string_view stop_name,
+                                    coordinates_station::Coordinates coord,
+                                    std::unordered_map<std::string, int64_t>& dis_next_station)
+{
+    stop_.emplace_back(static_cast<std::string>(stop_name), std::move(coord), std::move(dis_next_station));
     routing::Station& station = stop_.back();
     station_.emplace(station.name_station_, &station);
 }
-
 
 const routing::Bus* TransportCatalogue::GetRoute(std::string_view bus_number) const {
     auto it = route_.find(bus_number);

@@ -14,10 +14,11 @@ namespace routing {
 
 struct Station {
 
-    Station(std::string_view, coordinates_station::Coordinates);
+    Station(std::string_view, coordinates_station::Coordinates, std::unordered_map<std::string, int64_t>);
 
     std::string name_station_;
     coordinates_station::Coordinates coord_station_;
+    std::unordered_map<std::string, int64_t> to_station_;
 };
 
 struct Bus {
@@ -30,7 +31,7 @@ struct Bus {
 class TransportCatalogue {
 public:
     void AddRouteBus(std::string_view bus_number, const std::vector<std::string_view>& stops);
-    void AddStation(std::string_view stop_name, coordinates_station::Coordinates coord);
+    void AddStation(std::string_view stop_name, coordinates_station::Coordinates coord, std::unordered_map<std::string, int64_t> &dis_next_station);
 
     const routing::Bus* GetRoute(std::string_view) const;
     const std::unordered_set<routing::Bus*>& GetBuses(std::string_view) const;

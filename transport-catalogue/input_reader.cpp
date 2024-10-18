@@ -63,6 +63,7 @@ std::vector<std::string_view> ParseRoute(std::string_view route) {
 }
 
 CommandDescription ParseCommandDescription(std::string_view line) {
+
     auto colon_pos = line.find(':');
     if (colon_pos == line.npos) {
         return {};
@@ -82,6 +83,38 @@ CommandDescription ParseCommandDescription(std::string_view line) {
             std::string(line.substr(not_space, colon_pos - not_space)),
             std::string(line.substr(colon_pos + 1))};
 }
+
+std::unordered_map<std::string, int64_t> ParseLineAfterCoord(std::string_view line) {
+    std::unordered_map<std::string, int64_t> results;
+
+    size_t coord_end_pos = line.find(',', line.find(',') + 1);
+
+    while (coord_end_pos != line.npos) {
+
+        auto distance_pos_end = line.find('m', coord_end_pos);
+        if (distance_pos_end == line.npos) {
+            break;
+        }
+
+        int64_t distance = std::stoll(std::string(line.substr(coord_end_pos + 1, distance_pos_end - coord_end_pos - 1)));
+
+        auto station_pos_start = line.find("to ", distance_pos_end);
+        if (station_pos_start == line.npos) {
+            break;
+        }
+        station_pos_start += 3;
+
+        auto next_comma_pos = line.find(',', station_pos_start);
+        std::string station = std::string(line.substr(station_pos_start, next_comma_pos - station_pos_start));
+
+        results.insert({station, distance});
+
+        coord_end_pos = next_comma_pos;
+    }
+
+    return results;
+}
+
 }
 
 namespace input_output_request {
@@ -100,7 +133,10 @@ void InputReader::ApplyCommands([[maybe_unused]] TransportCatalogue& catalogue) 
 
         if(station == "Stop") {
 
-            catalogue.AddStation(request_redactor::Trim(command_stop.id), request_redactor::ParseCoordinates(command_stop.description));
+            auto dist_next_stop = request_redactor::ParseLineAfterCoord(command_stop.description);
+
+            catalogue.AddStation(request_redactor::Trim(command_stop.id), request_redactor::ParseCoordinates(command_stop.description),
+                                 dist_next_stop);
         }
     }
 
