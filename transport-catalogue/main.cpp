@@ -1,36 +1,21 @@
-﻿#include <iostream>
-#include <string>
+#include <iostream>
 #include <fstream>
+#include <sstream>
+#include <string>
+#include "json_reader.h"
+#include "transport_catalogue.h"
 
-#include "input_reader.h"
-#include "stat_reader.h"
+int main()
+{
+    TransportCatalogue cat;
+    
+    std::stringstream buffer;
+    buffer << std::cin.rdbuf(); 
 
+    std::istringstream fileStream(buffer.str());
 
+    LoadJson json(fileStream, cat);
+    json.GetReply();
 
-using namespace std;
-
-int main() {
-    transport_catalogue::TransportCatalogue catalogue;
-
-
-    int base_request_count;
-    cin >> base_request_count >> ws;
-
-    {
-        transport_catalogue::input_output_request::InputReader reader;
-        for (int i = 0; i < base_request_count; ++i) {
-            string line;
-            getline(cin, line);
-            reader.ParseLine(line);
-        }
-        reader.ApplyCommands(catalogue);
-    }
-
-    int stat_request_count;
-    cin >> stat_request_count >> ws;
-    for (int i = 0; i < stat_request_count; ++i) {
-        string line;
-        getline(cin, line);
-        transport_catalogue::input_output_request::ParseAndPrintStat(catalogue, line, cout);
-    }
+    return 0;
 }
