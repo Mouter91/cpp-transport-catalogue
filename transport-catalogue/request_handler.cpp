@@ -49,12 +49,12 @@ std::optional<std::set<std::string>> RequestHandler::GetBusesByStop(const std::s
         num_bus.insert(ptr_bus->number_bus_);
     }
 
-    return num_bus; // Возвращаем копию множества автобусов
+    return num_bus;
 }
 
 
 std::set<const Bus*, RequestHandler::BusComparator> RequestHandler::GetAutopark() {
-    const auto& buses = db_.GetAutopark();
+    const auto& buses = db_.GetAllBus();
     std::set<const Bus*, RequestHandler::BusComparator> bus_set;
 
     for (const auto& bus : buses) {

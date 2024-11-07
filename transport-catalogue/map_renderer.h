@@ -5,7 +5,7 @@
 
 #include <algorithm>
 #include <cstdlib>
-#include <iostream>
+#include <set>
 #include <optional>
 #include <vector>
 
@@ -127,5 +127,19 @@ struct BusRender {
     bool roundtrip;
 };
 
+class RequestHandler;
+
+class MapRender {
+public:
 
 
+    void SetRender(LoadRender&);
+
+    void GetRenderRoute(svg::Document& route_render, RequestHandler& request);
+    void GetRenderNameRoute(svg::Document& route_render);
+    void GetRenderSimStop(svg::Document& route_render);
+
+private:
+    LoadRender render_set;
+    std::set<BusRender> render_map;
+};

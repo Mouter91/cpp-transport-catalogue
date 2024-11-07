@@ -32,7 +32,7 @@ public:
     const std::unordered_set<Bus*>& GetBuses(std::string_view) const;
     const Station* GetStations(std::string_view) const;
     int64_t GetDistance(std::string_view, std::string_view) const;
-    const std::deque<Bus>& GetAutopark() const;
+    const std::deque<Bus>& GetAllBus() const;
 
 private:
     std::unordered_map<std::string_view, std::unordered_set<Bus*>> buses_at_station_;

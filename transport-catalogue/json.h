@@ -32,29 +32,21 @@ struct VisitorNode {
 
 void PrintString(const std::string& str, std::ostream& output);
 
-class Node {
+using Value = std::variant<std::nullptr_t, Array, Dict, bool, int, double, std::string>;
+
+class Node : public Value {
 public:
-    using Value = std::variant<std::nullptr_t, Array, Dict, bool, int, double, std::string>;
+    using Value::Value;
+    
 
-    Node() : value_(nullptr) {}
-    Node(std::nullptr_t) : value_(nullptr) {}
-    Node(int value) : value_(value) {}
-    Node(double value) : value_(value) {}
-    Node(const std::string& value) : value_(value) {}
-    Node(Array array) : value_(std::move(array)) {}
-    Node(Dict dict) : value_(std::move(dict)) {}
-    Node(bool value) : value_(value) {}
-
-    const Value& GetValue() const;
-
-    bool IsNull() const { return std::holds_alternative<std::nullptr_t>(value_); }
-    bool IsInt() const { return std::holds_alternative<int>(value_); }
+    bool IsNull() const { return std::holds_alternative<std::nullptr_t>(*this); }
+    bool IsInt() const { return std::holds_alternative<int>(*this); }
     bool IsDouble() const { return IsInt() || IsPureDouble(); }
-    bool IsPureDouble() const { return std::holds_alternative<double>(value_); }
-    bool IsString() const { return std::holds_alternative<std::string>(value_); }
-    bool IsArray() const { return std::holds_alternative<Array>(value_); }
-    bool IsMap() const { return std::holds_alternative<Dict>(value_); }
-    bool IsBool() const { return std::holds_alternative<bool>(value_); }
+    bool IsPureDouble() const { return std::holds_alternative<double>(*this); }
+    bool IsString() const { return std::holds_alternative<std::string>(*this); }
+    bool IsArray() const { return std::holds_alternative<Array>(*this); }
+    bool IsMap() const { return std::holds_alternative<Dict>(*this); }
+    bool IsBool() const { return std::holds_alternative<bool>(*this); }
 
 
     int AsInt() const;
@@ -65,16 +57,12 @@ public:
     bool AsBool() const;
 
     bool operator==(const Node& other) const {
-        return value_ == other.value_;
+        return static_cast<const Value&>(*this) == static_cast<const Value&>(other);
     }
 
     bool operator!=(const Node& other) const {
         return !(*this == other);
     }
-
-
-private:
-    Value value_;
 };
 
 class Document {

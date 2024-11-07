@@ -16,9 +16,6 @@ public:
     void GetReply();
     void LoadRequest(const json::Node& statRequests);
 
-    void GetRenderRoute(svg::Document&);
-    void GetRenderNameRoute(svg::Document&);
-    void GetRenderSimStop(svg::Document&);
     std::string PrintRender();
 
 
@@ -27,7 +24,7 @@ private:
     json::Document jsonDoc;
     TransportCatalogue& catalogue;
     RequestHandler request;
+    MapRender render;
 
     LoadRender render_set;
-    std::set<BusRender> render_map;
 };

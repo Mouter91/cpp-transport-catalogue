@@ -87,7 +87,7 @@ int64_t TransportCatalogue::GetDistance(std::string_view from, std::string_view 
     return 0;
 }
 
-const std::deque<Bus>& TransportCatalogue::GetAutopark() const {
+const std::deque<Bus>& TransportCatalogue::GetAllBus() const {
     return buses_;
 }
 

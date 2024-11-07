@@ -223,7 +223,7 @@ void VisitorNode::operator()(Array array) {
             out_ << ", \n";
         }
         first = false;
-        std::visit(VisitorNode{out_}, node.GetValue());
+        std::visit(VisitorNode{out_}, node);
     }
     out_ << "]\n";
 }
@@ -237,7 +237,7 @@ void VisitorNode::operator()(Dict dict) {
         }
         first = false;
         out_ << "\"" << key << "\": ";
-        std::visit(VisitorNode{out_}, value.GetValue());
+        std::visit(VisitorNode{out_}, value);
     }
     out_ << "}\n";
 }
@@ -273,51 +273,47 @@ void PrintString(const std::string& str, std::ostream& output) {
     output << '"';
 }
 
-//+++++++++++++++++++++++++++++++++++>>Node<<++++++++++++++++++++++++++++++++++++++++++++++++++
-const Node::Value& Node::GetValue() const {
-    return value_;
-}
 
 //++++++++++++++++++++++++++++++++++++++++Check+++++++++++++++++++++++++++++++++++++
 int Node::AsInt() const {
     if (!IsInt()) {
         throw std::logic_error("Node is not an integer");
     }
-    return std::get<int>(value_);
+    return std::get<int>(*this);
 }
 
 double Node::AsDouble() const {
     if (!IsDouble()) {
         throw std::logic_error("Node is not a double");
     }
-    return IsPureDouble() ? std::get<double>(value_) : static_cast<double>(AsInt());
+    return IsPureDouble() ? std::get<double>(*this) : static_cast<double>(AsInt());
 }
 
 const std::string& Node::AsString() const {
     if (!IsString()) {
         throw std::logic_error("Node is not a string");
     }
-    return std::get<std::string>(value_);
+    return std::get<std::string>(*this);
 }
 
 const Array& Node::AsArray() const {
     if (!IsArray()) {
         throw std::logic_error("Node is not an array");
     }
-    return std::get<Array>(value_);
+    return std::get<Array>(*this);
 }
 
 const Dict& Node::AsMap() const {
     if (!IsMap()) {
         throw std::logic_error("Node is not a map");
     }
-    return std::get<Dict>(value_);
+    return std::get<Dict>(*this);
 }
 
 bool Node::AsBool() const {
     // Предположим, что Node хранит значение типа std::variant, в который может входить bool
-    if (std::holds_alternative<bool>(value_)) {
-        return std::get<bool>(value_);
+    if (std::holds_alternative<bool>(*this)) {
+        return std::get<bool>(*this);
     }
     throw std::logic_error("Node does not hold a boolean value");
 }
@@ -341,7 +337,7 @@ Document Load(std::istream& input) {
 }
 
 void Print(const Document& doc, std::ostream& output) {
-    std::visit(VisitorNode{output}, doc.GetRoot().GetValue());
+    std::visit(VisitorNode{output}, doc.GetRoot());
 }
 
 }
