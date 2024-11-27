@@ -148,21 +148,23 @@ Node LoadNumber(std::istream& input) {
     if (input.peek() == '-') {
         read_char();
     }
-
+    // Парсим целую часть числа
     if (input.peek() == '0') {
         read_char();
+        // После 0 в JSON не могут идти другие цифры
     } else {
         read_digits();
     }
 
     bool is_int = true;
-
+    // Парсим дробную часть числа
     if (input.peek() == '.') {
         read_char();
         read_digits();
         is_int = false;
     }
 
+    // Парсим экспоненциальную часть числа
     if (int ch = input.peek(); ch == 'e' || ch == 'E') {
         read_char();
         if (ch = input.peek(); ch == '+' || ch == '-') {
@@ -174,9 +176,12 @@ Node LoadNumber(std::istream& input) {
 
     try {
         if (is_int) {
+            // Сначала пробуем преобразовать строку в int
             try {
                 return std::stoi(parsed_num);
             } catch (...) {
+                // В случае неудачи, например, при переполнении
+                // код ниже попробует преобразовать строку в double
             }
         }
         return std::stod(parsed_num);
@@ -198,6 +203,13 @@ Node LoadNode(std::istream& input) {
     case '"':
         return LoadString(input);
     case 't':
+        // Атрибут [[fallthrough]] (провалиться) ничего не делает, и является
+        // подсказкой компилятору и человеку, что здесь программист явно задумывал
+        // разрешить переход к инструкции следующей ветки case, а не случайно забыл
+        // написать break, return или throw.
+        // В данном случае, встретив t или f, переходим к попытке парсинга
+        // литералов true либо false
+        [[fallthrough]];
     case 'f':
         input.putback(c);
         return LoadBool(input);
@@ -209,135 +221,136 @@ Node LoadNode(std::istream& input) {
         return LoadNumber(input);
     }
 }
-}
-//++++++++++++++++++++++++++++++++>Visitor<+++++++++++++++++++++++++++++++++++++++++++++++
-void VisitorNode::operator()(std::nullptr_t) {
-    out_ << "null";
+
+struct PrintContext {
+    std::ostream& out;
+    int indent_step = 4;
+    int indent = 0;
+
+    void PrintIndent() const {
+        for (int i = 0; i < indent; ++i) {
+            out.put(' ');
+        }
+    }
+
+    PrintContext Indented() const {
+        return {out, indent_step, indent_step + indent};
+    }
+};
+
+void PrintNode(const Node& value, const PrintContext& ctx);
+
+template <typename Value>
+void PrintValue(const Value& value, const PrintContext& ctx) {
+    ctx.out << value;
 }
 
-void VisitorNode::operator()(Array array) {
-    out_ << "[\n";
+void PrintString(const std::string& value, std::ostream& out) {
+    out.put('"');
+    for (const char c : value) {
+        switch (c) {
+        case '\r':
+            out << "\\r"sv;
+            break;
+        case '\n':
+            out << "\\n"sv;
+            break;
+        case '\t':
+            out << "\\t"sv;
+            break;
+        case '"':
+            // Символы " и \ выводятся как \" или \\, соответственно
+            [[fallthrough]];
+        case '\\':
+            out.put('\\');
+            [[fallthrough]];
+        default:
+            out.put(c);
+            break;
+        }
+    }
+    out.put('"');
+}
+
+template <>
+void PrintValue<std::string>(const std::string& value, const PrintContext& ctx) {
+    PrintString(value, ctx.out);
+}
+
+template <>
+void PrintValue<std::nullptr_t>(const std::nullptr_t&, const PrintContext& ctx) {
+    ctx.out << "null"sv;
+}
+
+// В специализации шаблона PrintValue для типа bool параметр value передаётся
+// по константной ссылке, как и в основном шаблоне.
+// В качестве альтернативы можно использовать перегрузку:
+// void PrintValue(bool value, const PrintContext& ctx);
+template <>
+void PrintValue<bool>(const bool& value, const PrintContext& ctx) {
+    ctx.out << (value ? "true"sv : "false"sv);
+}
+
+template <>
+void PrintValue<Array>(const Array& nodes, const PrintContext& ctx) {
+    std::ostream& out = ctx.out;
+    out << "[\n"sv;
     bool first = true;
-    for (const auto& node : array) {
-        if (!first) {
-            out_ << ", \n";
+    auto inner_ctx = ctx.Indented();
+    for (const Node& node : nodes) {
+        if (first) {
+            first = false;
+        } else {
+            out << ",\n"sv;
         }
-        first = false;
-        std::visit(VisitorNode{out_}, node);
+        inner_ctx.PrintIndent();
+        PrintNode(node, inner_ctx);
     }
-    out_ << "]\n";
+    out.put('\n');
+    ctx.PrintIndent();
+    out.put(']');
 }
 
-void VisitorNode::operator()(Dict dict) {
-    out_ << "{\n";
+template <>
+void PrintValue<Dict>(const Dict& nodes, const PrintContext& ctx) {
+    std::ostream& out = ctx.out;
+    out << "{\n"sv;
     bool first = true;
-    for (const auto& [key, value] : dict) {
-        if (!first) {
-            out_ << ", \n";
+    auto inner_ctx = ctx.Indented();
+    for (const auto& [key, node] : nodes) {
+        if (first) {
+            first = false;
+        } else {
+            out << ",\n"sv;
         }
-        first = false;
-        out_ << "\"" << key << "\": ";
-        std::visit(VisitorNode{out_}, value);
+        inner_ctx.PrintIndent();
+        PrintString(key, ctx.out);
+        out << ": "sv;
+        PrintNode(node, inner_ctx);
     }
-    out_ << "}\n";
+    out.put('\n');
+    ctx.PrintIndent();
+    out.put('}');
 }
 
-void VisitorNode::operator()(bool value) {
-    out_ << (value ? "true" : "false");
+void PrintNode(const Node& node, const PrintContext& ctx) {
+    std::visit(
+        [&ctx](const auto& value) {
+            PrintValue(value, ctx);
+        },
+        node.GetValue());
 }
 
-void VisitorNode::operator()(int value) {
-    out_ << value;
-}
-
-void VisitorNode::operator()(double value) {
-    out_ << value;
-}
-
-void VisitorNode::operator()(const std::string& value) {
-    PrintString(value, out_);
-}
-
-void PrintString(const std::string& str, std::ostream& output) {
-    output << '"';
-    for (const char ch : str) {
-        switch (ch) {
-        case '\n': output << "\\n"; break;
-        case '\r': output << "\\r"; break;
-        case '\t': output << "\\t"; break;
-        case '\"': output << "\\\""; break;
-        case '\\': output << "\\\\"; break;
-        default: output << ch; break;
-        }
-    }
-    output << '"';
-}
-
-
-//++++++++++++++++++++++++++++++++++++++++Check+++++++++++++++++++++++++++++++++++++
-int Node::AsInt() const {
-    if (!IsInt()) {
-        throw std::logic_error("Node is not an integer");
-    }
-    return std::get<int>(*this);
-}
-
-double Node::AsDouble() const {
-    if (!IsDouble()) {
-        throw std::logic_error("Node is not a double");
-    }
-    return IsPureDouble() ? std::get<double>(*this) : static_cast<double>(AsInt());
-}
-
-const std::string& Node::AsString() const {
-    if (!IsString()) {
-        throw std::logic_error("Node is not a string");
-    }
-    return std::get<std::string>(*this);
-}
-
-const Array& Node::AsArray() const {
-    if (!IsArray()) {
-        throw std::logic_error("Node is not an array");
-    }
-    return std::get<Array>(*this);
-}
-
-const Dict& Node::AsMap() const {
-    if (!IsMap()) {
-        throw std::logic_error("Node is not a map");
-    }
-    return std::get<Dict>(*this);
-}
-
-bool Node::AsBool() const {
-    // Предположим, что Node хранит значение типа std::variant, в который может входить bool
-    if (std::holds_alternative<bool>(*this)) {
-        return std::get<bool>(*this);
-    }
-    throw std::logic_error("Node does not hold a boolean value");
-}
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-Document::Document(Node root)
-    : root_(std::move(root)) {
-}
-
-bool operator==(const Document& lhs, const Document& rhs) {
-    return lhs.GetRoot() == rhs.GetRoot();
-}
-
-const Node& Document::GetRoot() const {
-    return root_;
-}
+}  // namespace
 
 Document Load(std::istream& input) {
     return Document{LoadNode(input)};
 }
 
 void Print(const Document& doc, std::ostream& output) {
-    std::visit(VisitorNode{output}, doc.GetRoot());
+    PrintNode(doc.GetRoot(), PrintContext{output});
 }
 
-}
+
+
+}  // namespace json
