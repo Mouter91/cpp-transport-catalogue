@@ -19,7 +19,7 @@ Node Builder::Build() {
     return std::move(root_);
 }
 
-Builder& Builder::Key(std::string key) {
+Builder::ValueItemContext Builder::Key(std::string key) {
     Node::Value& host_value = GetCurrentValue();
 
     if (!std::holds_alternative<Dict>(host_value)) {
@@ -29,29 +29,37 @@ Builder& Builder::Key(std::string key) {
     nodes_stack_.push_back(
         &std::get<Dict>(host_value)[std::move(key)]
     );
-    return *this;
+    return ValueItemContext(*this);
 }
 
-Builder& Builder::Value(Node::Value value) {
+Builder::ValueItemContext Builder::Value(Node::Value value) {
     AddObject(std::move(value), /* one_shot */ true);
-    return *this;
+    return ValueItemContext(*this);
 }
 
+Builder::DictItemContext Builder::StartDict() {
+    AddObject(Dict{}, /* one_shot */ false);
+    return DictItemContext(*this);
+}
+Builder::ArrayItemContext Builder::StartArray() {
+    AddObject(Array{}, /* one_shot */ false);
+    return ArrayItemContext(*this);
+}
 
-Builder& Builder::EndDict() {
+Builder::BaseContext  Builder::EndDict() {
     if (!std::holds_alternative<Dict>(GetCurrentValue())) {
         throw std::logic_error("EndDict() outside a dict"s);
     }
     nodes_stack_.pop_back();
-    return *this;
+    return BaseContext(*this);
 }
 
-Builder& Builder::EndArray() {
+Builder::BaseContext  Builder::EndArray() {
     if (!std::holds_alternative<Array>(GetCurrentValue())) {
         throw std::logic_error("EndDict() outside an array"s);
     }
     nodes_stack_.pop_back();
-    return *this;
+    return BaseContext(*this);
 }
 
 // Current value can be:
