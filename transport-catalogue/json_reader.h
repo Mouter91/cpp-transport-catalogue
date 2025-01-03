@@ -12,6 +12,7 @@ public:
     void LoadStops(const json::Node& baseRequests);
     void LoadBuses(const json::Node& baseRequests);
     void LoadRenderSettings();
+    void LoadRoutingSettings(const json::Node& routeSettings);
 
     void GetReply();
     void LoadRequest(const json::Node& statRequests);

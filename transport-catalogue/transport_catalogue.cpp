@@ -87,6 +87,13 @@ int64_t TransportCatalogue::GetDistance(std::string_view from, std::string_view 
     return 0;
 }
 
+void TransportCatalogue::SetRouteSetting(const size_t bus_wait, const size_t bus_velocity) {
+    route_settings_ = { bus_wait, bus_velocity };
+}
+const RouteSetting* TransportCatalogue::GetRouteSetting() const {
+    return &route_settings_;
+}
+
 const std::deque<Bus>& TransportCatalogue::GetAllBus() const {
     return buses_;
 }

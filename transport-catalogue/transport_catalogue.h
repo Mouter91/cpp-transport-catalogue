@@ -21,6 +21,11 @@ struct PairHash {
     }
 };
 
+struct RouteSetting{
+    double bus_wait_time;
+    double bus_velocity;
+};
+
 
 class TransportCatalogue {
 public:
@@ -34,7 +39,16 @@ public:
     int64_t GetDistance(std::string_view, std::string_view) const;
     const std::deque<Bus>& GetAllBus() const;
 
+    void SetRouteSetting(const size_t bus_wait, const size_t bus_velocity);
+    const RouteSetting* GetRouteSetting() const;
+
+    const std::deque<Station>& GetAllStops() const {
+        return stop_;
+    }
+
+
 private:
+
     std::unordered_map<std::string_view, std::unordered_set<Bus*>> buses_at_station_;
     std::unordered_map<std::string_view, Station*> station_;
     std::unordered_map<std::string_view, Bus*> route_;
@@ -42,5 +56,7 @@ private:
 
     std::deque<Station> stop_;
     std::deque<Bus> buses_;
+
+    RouteSetting route_settings_;
 };
 

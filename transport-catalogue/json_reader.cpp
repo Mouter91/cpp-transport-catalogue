@@ -1,4 +1,5 @@
 #include "json_reader.h"
+#include "transport_router.h"
 #include <iostream>
 
 
@@ -15,6 +16,9 @@ LoadJson::LoadJson(std::istream& input, TransportCatalogue& catalogue): catalogu
         LoadStops(baseRequests);
         LoadBuses(baseRequests);
         LoadRenderSettings();
+
+        const auto& routeSettings = root.AsDict().at("routing_settings");
+        LoadRoutingSettings(routeSettings);
     } catch (const json::ParsingError& e) {
         std::cerr << "Ошибка парсинга JSON: " << e.what() << std::endl;
     }
@@ -68,12 +72,18 @@ void LoadJson::LoadBuses(const json::Node& baseRequests) {
 
 }
 
+void LoadJson::LoadRoutingSettings(const json::Node& routeSettings) {
+    const auto& node =  routeSettings.AsDict();
+    catalogue.SetRouteSetting(node.at("bus_wait_time").AsInt(), node.at("bus_velocity").AsInt());
+}
+
 
 void LoadJson::GetReply() {
     const auto& root = jsonDoc.GetRoot();
     if (!root.IsDict() || !root.AsDict().count("stat_requests")) {
         throw std::logic_error("Invalid JSON structure");
     }
+
     const auto& statRequests = root.AsDict().at("stat_requests");
     LoadRequest(statRequests);
 }
@@ -82,6 +92,8 @@ void LoadJson::LoadRequest(const json::Node& statRequests) {
 
     json::Builder builder;
     builder.StartArray();
+
+    TransportRoute graph(catalogue);
 
     for (const auto& node : statRequests.AsArray()) {
         if (!node.IsDict() || !node.AsDict().count("id") || !node.AsDict().count("type")) {
@@ -119,6 +131,38 @@ void LoadJson::LoadRequest(const json::Node& statRequests) {
                 builder.Key("route_length").Value(busStat->distance);
                 builder.Key("stop_count").Value(busStat->stops_on_route);
                 builder.Key("unique_stop_count").Value(busStat->unique_stations);
+            } else {
+                builder.Key("error_message").Value("not found");
+            }
+        } else if (requestType == "Route") {
+            std::string from = dictNode.at("from").AsString();
+            std::string to = dictNode.at("to").AsString();
+
+            // Получаем информацию о маршруте
+            auto route_ = graph.GetRouteInfo(from, to);
+
+            if (route_.has_value()) {
+                // Если маршрут найден, формируем ответ
+                builder.Key("total_time").Value(route_->total_time);
+
+                builder.Key("items").StartArray();
+                for (const auto& item : route_->route_info) {
+                    if (!item.is_bus) {
+                        builder.StartDict();
+                        builder.Key("type").Value("Wait");
+                        builder.Key("stop_name").Value(std::string(item.name));
+                        builder.Key("time").Value(item.time_wait);
+                        builder.EndDict();
+                    } else if (item.is_bus) {
+                        builder.StartDict();
+                        builder.Key("type").Value("Bus");
+                        builder.Key("bus").Value(std::string(item.name));
+                        builder.Key("span_count").Value(item.span);
+                        builder.Key("time").Value(item.time_wait);
+                        builder.EndDict();
+                    }
+                }
+                builder.EndArray();
             } else {
                 builder.Key("error_message").Value("not found");
             }

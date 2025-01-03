@@ -8,13 +8,8 @@
 int main()
 {
     TransportCatalogue cat;
-    
-    std::stringstream buffer;
-    buffer << std::cin.rdbuf(); 
 
-    std::istringstream fileStream(buffer.str());
-
-    LoadJson json(fileStream, cat);
+    LoadJson json(std::cin, cat);
     json.GetReply();
 
     return 0;
