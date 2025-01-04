@@ -46,11 +46,14 @@ private:
 public:
 
     TransportRoute(const TransportCatalogue& catalogue);
-    void BuildGraph();
     std::optional<RouteInfo> GetRouteInfo(std::string_view from, std::string_view to);
 
 
 private:
+
+    void AddEdgeWaiting();
+    void AddEdgeTravel();
+    void BuildGraph();
 
     const TransportCatalogue& catalogue_;
     graph::DirectedWeightedGraph<EdgeInfo> graph_;

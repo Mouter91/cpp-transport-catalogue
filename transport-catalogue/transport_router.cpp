@@ -1,25 +1,21 @@
 #include "transport_router.h"
 
-
     TransportRoute::TransportRoute(const TransportCatalogue& catalogue)
         : catalogue_(catalogue), graph_(catalogue.GetAllStops().size() * 2) {
         BuildGraph();
         router = std::make_unique<graph::Router<EdgeInfo>>(graph_);
     }
 
-    void TransportRoute::BuildGraph() {
+    void TransportRoute::AddEdgeWaiting() {
         const auto& stops = catalogue_.GetAllStops();
-        const auto& buses = catalogue_.GetAllBus();
         const auto* route_settings = catalogue_.GetRouteSetting();
 
-        // 1. Добавление вершин
         for (size_t i = 0; i < stops.size(); ++i) {
             size_t start_waiting = i * 2;      // Вершина начала ожидания
             size_t stop_waiting = i * 2 + 1;  // Вершина окончания ожидания
 
             vertex_stop[stops[i].name_station_] = {start_waiting, stop_waiting};
 
-            // Добавляем ребро ожидания для каждой остановки
             graph_.AddEdge({
                 start_waiting,  // Вершина начала ожидания
                 stop_waiting,   // Вершина окончания ожидания
@@ -33,8 +29,12 @@
                 false
             });
         }
+    }
 
-        // 2. Добавление рёбер маршрутов
+    void TransportRoute::AddEdgeTravel() {
+        const auto& buses = catalogue_.GetAllBus();
+        const auto* route_settings = catalogue_.GetRouteSetting();
+
         for (const auto& bus : buses) {
             const auto& route_bus = bus.route;
             if (route_bus.empty()) continue;
@@ -59,6 +59,11 @@
                 }
             }
         }
+    }
+
+    void TransportRoute::BuildGraph() {
+        AddEdgeWaiting();
+        AddEdgeTravel();
     }
 
     std::optional<TransportRoute::RouteInfo> TransportRoute::GetRouteInfo(std::string_view from, std::string_view to) {
